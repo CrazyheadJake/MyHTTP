@@ -9,16 +9,18 @@ using Route = std::filesystem::path;
 // Holds all information about an HTTP request
 class HTTPRequest {
 public:
-    enum class Method {
-        GET,
-        POST,
-        PUT,
-        DELETE,
-        HEAD,
-        OPTIONS,
-        PATCH,
-        CONNECT,
-        TRACE
+    enum Method {
+        NONE = 0,
+        GET = 1,
+        POST = 1 << 1,
+        PUT = 1 << 2,
+        DELETE = 1 << 3,
+        HEAD = 1 << 4,
+        OPTIONS = 1 << 5,
+        PATCH = 1 << 6,
+        CONNECT = 1 << 7,
+        TRACE = 1 << 8,
+        ALL = GET | POST | PUT | DELETE | HEAD | OPTIONS | PATCH | CONNECT | TRACE
     };
 
     HTTPRequest(Method method, Route route, std::string version, std::unordered_map<std::string, std::string> headers) 

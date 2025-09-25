@@ -55,6 +55,10 @@ void Server::stop()
     }
 }
 
+void Server::addRoute(Route route, int method, Handler handler) {
+    router.addRoute(route, method, handler);
+}
+
 HTTPResponse Server::handleRequest(const std::optional<HTTPRequest> &request)
 {
     // Simple routing logic
