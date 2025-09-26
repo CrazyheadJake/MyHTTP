@@ -18,7 +18,7 @@ public:
     void stop();
     void addRoute(Route route, int method, Handler handler);
     HTTPResponse handleRequest(const std::optional<HTTPRequest>& request);
-    
+
 private:
     int m_port;
     std::filesystem::path m_rootDir;
@@ -26,7 +26,7 @@ private:
     int m_serverSocket = -1;
     int m_epollFd = -1;
     WorkerPool m_pool;
-    Router router;
+    Router m_router;
     sockaddr_in m_serverAddress;
 
     void setupSocket();

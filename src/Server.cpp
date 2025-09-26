@@ -9,7 +9,7 @@
 #include <fcntl.h>
 
 Server::Server(int port, const std::filesystem::path &rootDir, int numThreads)
- : m_port(port), m_rootDir(rootDir), m_pool(WorkerPool(numThreads))
+ : m_port(port), m_router(rootDir), m_pool(WorkerPool(numThreads))
 {
     m_epollFd = epoll_create1(0);
     if (m_epollFd == -1) {
@@ -56,7 +56,7 @@ void Server::stop()
 }
 
 void Server::addRoute(Route route, int method, Handler handler) {
-    router.addRoute(route, method, handler);
+    m_router.addRoute(route, method, handler);
 }
 
 HTTPResponse Server::handleRequest(const std::optional<HTTPRequest> &request)
@@ -65,13 +65,15 @@ HTTPResponse Server::handleRequest(const std::optional<HTTPRequest> &request)
     if (!request) {
         return ResponseGenerator::generateBadRequestResponse();
     }
-    if (request->getRoute() == "/") {
-        std::string htmlContent = "<html><body><h1>Welcome to MyHTTP Server</h1></body></html>";
-        return ResponseGenerator::generateHTMLResponse(htmlContent);
+    std::optional<Handler> handler = m_router.getHandler(request->getRoute(), request->getMethod());
+    if (handler) {
+        return (*handler)(*request);
     }
-    else {
-        return ResponseGenerator::generateNotFoundResponse();
+    std::optional<HTTPResponse> staticFile = m_router.getStaticFile(*request);
+    if (staticFile) {
+        return *staticFile;
     }
+    return ResponseGenerator::generateNotFoundResponse();
 }
 
 void Server::setupSocket()

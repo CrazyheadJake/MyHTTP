@@ -1,4 +1,5 @@
 #include "ResponseGenerator.h"
+#include <fstream>
 
 HTTPResponse ResponseGenerator::generateNotFoundResponse()
 {
@@ -20,6 +21,18 @@ HTTPResponse ResponseGenerator::generateBadRequestResponse()
         {"Content-Length", std::to_string(message.size())}
     };
     HTTPResponse response(HTTPResponse::Status::BAD_REQUEST, std::move(headers));
+    response.setBody(message);
+    return response;
+}
+
+HTTPResponse ResponseGenerator::generateForbiddenResponse()
+{
+    std::string message = "403 Forbidden";
+    std::unordered_map<std::string, std::string> headers = {
+        {"Content-Type", "text/plain"},
+        {"Content-Length", std::to_string(message.size())}
+    };
+    HTTPResponse response(HTTPResponse::Status::FORBIDDEN, std::move(headers));
     response.setBody(message);
     return response;
 }
@@ -46,6 +59,29 @@ HTTPResponse ResponseGenerator::generateNotImplementedResponse()
     HTTPResponse response(HTTPResponse::Status::NOT_IMPLEMENTED, std::move(headers));
     response.setBody(message);
     return response;}
+
+HTTPResponse ResponseGenerator::generateFileResponse(const std::filesystem::path &filePath)
+{
+    std::ifstream file(filePath, std::ios::binary);
+    std::string fileContent((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    std::unordered_map<std::string, std::string> headers = {
+        {"Content-Type", getContentType(filePath)},
+        {"Content-Length", std::to_string(fileContent.size())}
+    };
+    HTTPResponse response(HTTPResponse::Status::OK, std::move(headers));
+    response.setBody(fileContent);
+    return response;
+}
+
+std::string ResponseGenerator::getContentType(const std::filesystem::path &filePath)
+{
+    auto it = MIME_TYPES.find(filePath.extension().string());
+    if (it != MIME_TYPES.end()) {
+        return it->second;
+    }
+    return "application/octet-stream";
+}
 
 HTTPResponse ResponseGenerator::generateHTMLResponse(const std::string &htmlContent)
 {
