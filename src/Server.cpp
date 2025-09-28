@@ -92,13 +92,11 @@ void Server::setupSocket()
     serverAddress.sin_addr.s_addr = INADDR_ANY;
 
     // Binding socket.
+    int opt = 1;
+    setsockopt(m_serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
     int result = bind(m_serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
     if (result < 0) {
-        serverAddress.sin_port = htons(m_port + 1);
-        int result = bind(m_serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
-        if (result < 0) {
-            throw std::runtime_error("Failed to bind socket: " + std::string(strerror(errno)));
-        }
+        throw std::runtime_error("Failed to bind socket: " + std::string(strerror(errno)));
     }
 }
 
@@ -137,6 +135,9 @@ void Server::handleClient(int clientSocket, uint32_t events)
     std::string buffer;
     while (buffer.find("\r\n\r\n") == std::string::npos) {
         char temp[1024];
+        // This is a non-blocking recv due to non-blocking socket, we aren't currently taking
+        // advantage of that fully though as we just repeat until we get the full request
+        // Ideally, we would return to epoll and wait for more data while saving the partial data received
         int bytes = recv(clientSocket, temp, sizeof(temp), 0);
         if (bytes == -1) {
             std::cerr << "Failed to read from client: " << strerror(errno) << std::endl;

@@ -31,7 +31,8 @@ public:
     }
     const std::unordered_map<std::string, std::string>& getAllHeaders() const { return m_headers; }
     const std::string& getBody() const { return m_body; }
-    void setBody(const std::string& body) { m_body = body; }
+    void setBody(const std::string& body);
+    const std::string& getVersion() const { return m_version; }
     std::string toString() const {
         std::string result = m_version + " " + std::to_string(static_cast<int>(m_status)) + " " + getStatusText(m_status) + "\r\n";
         for (const auto& [key, value] : m_headers) {
@@ -41,7 +42,7 @@ public:
         return result;
     }
 
-    static std::string getStatusText(Status status) {
+    static constexpr std::string getStatusText(Status status) {
         switch (status) {
             case Status::OK: return "OK";
             case Status::CREATED: return "Created";
