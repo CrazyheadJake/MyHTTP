@@ -7,9 +7,10 @@
 #include <sys/epoll.h>
 #include "WorkerPool.h"
 #include <fcntl.h>
+#include <queue>
 
-Server::Server(int port, const std::filesystem::path &rootDir, int numThreads)
- : m_port(port), m_router(rootDir), m_pool(WorkerPool(numThreads))
+Server::Server(int port, const std::filesystem::path &rootDir, int numThreads, int timeoutSeconds) 
+    : m_timeoutSeconds(timeoutSeconds), m_port(port), m_router(rootDir), m_pool(WorkerPool(numThreads))
 {
     m_epollFd = epoll_create1(0);
     if (m_epollFd == -1) {
@@ -30,7 +31,17 @@ void Server::start()
     epoll_event events[64];
 
     while (true) {
-        int n = epoll_wait(m_epollFd, events, 64, -1);
+        // Calculate wait time for epoll based on next connection timeout
+        int waitTime = -1;
+        if (!m_activeConnections.empty()) {
+            auto now = std::chrono::steady_clock::now();
+            auto& conn = m_activeConnections.top();
+            double duration = 5 - std::chrono::duration<double>(now - conn.lastActive).count();
+            waitTime = std::max(0.0, duration) * 1000; // convert to milliseconds
+        }
+        // Wait for events, this will block until an event occurs or timeout
+        int n = epoll_wait(m_epollFd, events, 64, waitTime);
+        timeOutConnections();
         for (int i = 0; i < n; i++) {
             if (events[i].data.fd == m_serverSocket) {
                 acceptConnection();
@@ -59,7 +70,7 @@ void Server::addRoute(Route route, int method, Handler handler) {
     m_router.addRoute(route, method, handler);
 }
 
-HTTPResponse Server::handleRequest(const std::optional<HTTPRequest> &request)
+HTTPResponse Server::handleRequest(const std::optional<HTTPRequest> &request) const
 {
     // Simple routing logic
     if (!request) {
@@ -123,7 +134,7 @@ void Server::acceptConnection()
             close(clientSocket);
             return;
         }
-
+        m_activeConnections.push({clientSocket, std::chrono::steady_clock::now()});
         std::cout << "Accepted new client, fd=" << clientSocket << "\n";
     }
 }
@@ -165,8 +176,6 @@ void Server::handleClient(int clientSocket, uint32_t events)
     auto response = handleRequest(*request);
     std::string responseStr = response.toString();
     send(clientSocket, responseStr.c_str(), responseStr.size(), 0);
-    epoll_ctl(m_epollFd, EPOLL_CTL_DEL, clientSocket, nullptr);
-    close(clientSocket);
 }
 
 // Helper: set socket to be non-blocking
@@ -174,4 +183,21 @@ void Server::setNonBlocking(int fd)
 {
     int flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+void Server::timeOutConnections()
+{
+    auto now = std::chrono::steady_clock::now();
+    while (!m_activeConnections.empty()) {
+        auto& conn = m_activeConnections.top();
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - conn.lastActive).count();
+        if (duration > m_timeoutSeconds) {
+            std::cout << "Timing out connection, fd=" << conn.socket << "\n";
+            epoll_ctl(m_epollFd, EPOLL_CTL_DEL, conn.socket, nullptr);
+            close(conn.socket);
+            m_activeConnections.pop();
+        } else {
+            break; // since the queue is ordered, we can stop checking further
+        }
+    }
 }

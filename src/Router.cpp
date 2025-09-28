@@ -17,7 +17,7 @@ std::optional<Handler> Router::getHandler(const Route &route, HTTPRequest::Metho
     return std::nullopt;
 }
 
-std::optional<HTTPResponse> Router::getStaticFile(const HTTPRequest &request)
+std::optional<HTTPResponse> Router::getStaticFile(const HTTPRequest &request) const
 {
     if (request.getMethod() != HTTPRequest::Method::GET)
         return std::nullopt;
