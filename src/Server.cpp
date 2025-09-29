@@ -48,6 +48,7 @@ void Server::start()
             } else {
                 int clientFd = events[i].data.fd;
                 uint32_t ev = events[i].events;
+                updateLastActive(clientFd);
 
                 // push client work onto pool
                 m_pool.enqueue([this, clientFd, ev]() {
@@ -118,7 +119,7 @@ void Server::acceptConnection()
         int clientSocket = accept(m_serverSocket, nullptr, nullptr);
         if (clientSocket < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK)
-                break; // no more clients
+                break; // no more connections to accept
             std::cerr << "Failed to accept client connection: " << strerror(errno) << std::endl;
             return;
         }
@@ -134,7 +135,7 @@ void Server::acceptConnection()
             close(clientSocket);
             return;
         }
-        m_activeConnections.push({clientSocket, std::chrono::steady_clock::now()});
+        updateLastActive(clientSocket);
         std::cout << "Accepted new client, fd=" << clientSocket << "\n";
     }
 }
@@ -152,8 +153,7 @@ void Server::handleClient(int clientSocket, uint32_t events)
         int bytes = recv(clientSocket, temp, sizeof(temp), 0);
         if (bytes == -1) {
             std::cerr << "Failed to read from client: " << strerror(errno) << std::endl;
-            epoll_ctl(m_epollFd, EPOLL_CTL_DEL, clientSocket, nullptr);
-            close(clientSocket);
+            closeConnection(clientSocket);
             return;
         }
         buffer.append(temp, bytes);
@@ -163,19 +163,32 @@ void Server::handleClient(int clientSocket, uint32_t events)
     auto request = Parser::parseRequest(buffer);
     if (!request) {
         std::cerr << "Failed to parse HTTP request" << std::endl;
-        epoll_ctl(m_epollFd, EPOLL_CTL_DEL, clientSocket, nullptr);
-        close(clientSocket);
+        closeConnection(clientSocket);
         return;
     }
     else {
-        std::cout << "Parsed HTTP request:" << std::endl;
-        std::cout << request->toString() << std::endl;
+        std::cout << "Parsed HTTP request from fd=" << clientSocket << std::endl;
+        std::cout << HTTPRequest::getMethodString(request->getMethod()) << " " << request->getRoute() << std::endl;
     }
 
     // Handle the request and generate a response
     auto response = handleRequest(*request);
     std::string responseStr = response.toString();
     send(clientSocket, responseStr.c_str(), responseStr.size(), 0);
+
+    // Close connection if "Connection: close" header is present
+    auto connectionHeader = request->getHeader("Connection");
+    if (connectionHeader && *connectionHeader == "close") {
+        closeConnection(clientSocket);
+    }
+}
+
+void Server::closeConnection(int clientSocket)
+{
+    epoll_ctl(m_epollFd, EPOLL_CTL_DEL, clientSocket, nullptr);
+    close(clientSocket);
+    m_lastActiveTimes.erase(clientSocket);
+    std::cout << "Closed connection, fd=" << clientSocket << "\n";
 }
 
 // Helper: set socket to be non-blocking
@@ -185,6 +198,13 @@ void Server::setNonBlocking(int fd)
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
+void Server::updateLastActive(int clientSocket)
+{
+    auto now = std::chrono::steady_clock::now();
+    m_lastActiveTimes[clientSocket] = now;
+    m_activeConnections.push(ClientConnection{clientSocket, now});
+}
+
 void Server::timeOutConnections()
 {
     auto now = std::chrono::steady_clock::now();
@@ -192,9 +212,16 @@ void Server::timeOutConnections()
         auto& conn = m_activeConnections.top();
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - conn.lastActive).count();
         if (duration > m_timeoutSeconds) {
+            // Look up to see if this is still the last active time for this socket
+            // or if the socket is already closed
+            auto it = m_lastActiveTimes.find(conn.socket);
+            if (it == m_lastActiveTimes.end() || it->second != conn.lastActive) {
+                m_activeConnections.pop(); // stale entry, skip it
+                continue;
+            }
             std::cout << "Timing out connection, fd=" << conn.socket << "\n";
-            epoll_ctl(m_epollFd, EPOLL_CTL_DEL, conn.socket, nullptr);
-            close(conn.socket);
+            // Remove from epoll and close socket
+            closeConnection(conn.socket);
             m_activeConnections.pop();
         } else {
             break; // since the queue is ordered, we can stop checking further

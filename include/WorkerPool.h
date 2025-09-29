@@ -18,7 +18,6 @@ private:
     std::queue<std::function<void()>> m_tasks;
     std::mutex m_queueMutex;
     std::condition_variable m_cv;
-    std::atomic<int> m_count = 0;
     bool m_stop = false;
 
     void run();

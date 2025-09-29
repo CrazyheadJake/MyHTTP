@@ -22,7 +22,7 @@ struct ClientConnection {
 
 class Server {
 public:
-    Server(int port, const std::filesystem::path& rootDir, int numThreads = 16, int timeoutSeconds = 10);
+    Server(int port, const std::filesystem::path& rootDir, int numThreads = 16, int timeoutSeconds = 30);
     void start();
     void stop();
     void addRoute(Route route, int method, Handler handler);
@@ -38,11 +38,15 @@ private:
     Router m_router;
     sockaddr_in m_serverAddress;
     std::priority_queue<ClientConnection, std::vector<ClientConnection>, std::greater<ClientConnection>> m_activeConnections;
+    std::unordered_map<int, std::chrono::steady_clock::time_point> m_lastActiveTimes;
 
     void setupSocket();
     void acceptConnection();
     void handleClient(int clientSocket, uint32_t events);
+    void closeConnection(int clientSocket);
     void setNonBlocking(int fd);
+
+    void updateLastActive(int clientSocket);
     void timeOutConnections();
 };
     

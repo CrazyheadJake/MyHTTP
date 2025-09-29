@@ -36,8 +36,7 @@ void WorkerPool::run()
             std::unique_lock<std::mutex> lock(m_queueMutex);
             // Wait until we are notified and there is a task or we are stopping
             m_cv.wait(lock, [&]{ return m_stop || !m_tasks.empty(); });
-            std::cout << "Worker thread woke up: \n" << std::this_thread::get_id() << "\n";
-            std::cout << "Number of times woken up total: " << ++m_count << "\n";
+            
             // Handle shutdown
             if (m_stop && m_tasks.empty()) return;
 
