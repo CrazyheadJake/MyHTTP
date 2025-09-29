@@ -2,14 +2,17 @@
 #include "HTTPResponse.h"
 #include <filesystem>
 
+// Methods to generate different types of HTTP responses can be added here
 namespace ResponseGenerator {
-    // Methods to generate different types of HTTP responses can be added here
+
+    /// @brief Generate a simple HTML response with the given content.
     HTTPResponse generateHTMLResponse(const std::string& htmlContent);
     HTTPResponse generateNotFoundResponse();
     HTTPResponse generateBadRequestResponse();
     HTTPResponse generateForbiddenResponse();
     HTTPResponse generateInternalServerErrorResponse();
     HTTPResponse generateNotImplementedResponse();
+    /// @brief Generate a response that serves the contents of the specified file.
     HTTPResponse generateFileResponse(const std::filesystem::path& filePath);
 
     const std::unordered_map<std::string, std::string> MIME_TYPES = {

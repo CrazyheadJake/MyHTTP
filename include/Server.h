@@ -22,10 +22,24 @@ struct ClientConnection {
 
 class Server {
 public:
+    /// @brief Construct a new Server object.
+    /// @param port The port number to listen on.
+    /// @param rootDir The root directory for serving static files.
+    /// @param numThreads The number of worker threads in the thread pool. There is always only one acceptor thread.
+    /// @param timeoutSeconds The timeout in seconds for idle connections.
     Server(int port, const std::filesystem::path& rootDir, int numThreads = 16, int timeoutSeconds = 30);
+    /// @brief Start the server's main loop. This will block.
     void start();
+    /// @brief Stop the server. This is not yet implemented.
     void stop();
+    /// @brief Add a route to the server's router.
+    /// @param route The route path.
+    /// @param method The HTTP method(s) for this route (bitmask of HTTPRequest::Method).
+    /// @param handler The handler function to process requests for this route.
     void addRoute(Route route, int method, Handler handler);
+    /// @brief Handle an incoming HTTP request and generate a response.
+    /// @param request The HTTP request to handle.
+    /// @return The generated HTTP response.
     HTTPResponse handleRequest(const std::optional<HTTPRequest>& request) const;
 
 private:

@@ -121,7 +121,7 @@ void Server::acceptConnection()
             if (errno == EAGAIN || errno == EWOULDBLOCK)
                 break; // no more connections to accept
             std::cerr << "Failed to accept client connection: " << strerror(errno) << std::endl;
-            return;
+            continue;
         }
 
         setNonBlocking(clientSocket);
@@ -133,7 +133,7 @@ void Server::acceptConnection()
         if (epoll_ctl(m_epollFd, EPOLL_CTL_ADD, clientSocket, &ev) == -1) {
             std::cerr << "Failed to add client to epoll" << strerror(errno) << std::endl;
             close(clientSocket);
-            return;
+            continue;
         }
         updateLastActive(clientSocket);
         std::cout << "Accepted new client, fd=" << clientSocket << "\n";

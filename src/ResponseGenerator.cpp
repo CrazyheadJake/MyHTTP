@@ -57,6 +57,10 @@ HTTPResponse ResponseGenerator::generateNotImplementedResponse()
 
 HTTPResponse ResponseGenerator::generateFileResponse(const std::filesystem::path &filePath)
 {
+    // Right now, this is sort of slow. We copy file contents into memory and then copy from 
+    // there into the response body. Then we copy from the response body into the socket buffer.
+    // For large files, we should consider using sendfile or
+    // memory-mapped files to avoid extra copies.
     std::ifstream file(filePath, std::ios::binary);
     std::string fileContent((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
