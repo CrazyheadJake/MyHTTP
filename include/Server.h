@@ -51,16 +51,24 @@ private:
     WorkerPool m_pool;
     Router m_router;
     sockaddr_in m_serverAddress;
+    
     std::priority_queue<ClientConnection, std::vector<ClientConnection>, std::greater<ClientConnection>> m_activeConnections;
     std::unordered_map<int, std::chrono::steady_clock::time_point> m_lastActiveTimes;
+
+    std::mutex m_bufferMutex;
+    std::unordered_map<int, std::string> m_connectionBuffers;
 
     void setupSocket();
     void acceptConnection();
     void handleClient(int clientSocket, uint32_t events);
+    std::optional<std::string> receiveData(int clientSocket);
     void closeConnection(int clientSocket);
     void setNonBlocking(int fd);
 
     void updateLastActive(int clientSocket);
     void timeOutConnections();
+
+    void addToBuffer(std::string buffer, int clientSocket);
+    std::string getFromBuffer(int clientSocket);
 };
     

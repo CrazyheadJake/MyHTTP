@@ -144,20 +144,11 @@ void Server::acceptConnection()
 void Server::handleClient(int clientSocket, uint32_t events)
 {
     // Receiving message from client
-    std::string buffer;
-    while (buffer.find("\r\n\r\n") == std::string::npos) {
-        char temp[1024];
-        // This is a non-blocking recv due to non-blocking socket, we aren't currently taking
-        // advantage of that fully though as we just repeat until we get the full request
-        // Ideally, we would return to epoll and wait for more data while saving the partial data received
-        int bytes = recv(clientSocket, temp, sizeof(temp), 0);
-        if (bytes == -1) {
-            std::cerr << "Failed to read from client: " << strerror(errno) << std::endl;
-            closeConnection(clientSocket);
-            return;
-        }
-        buffer.append(temp, bytes);
+    auto optBuffer = receiveData(clientSocket);
+    if (!optBuffer) {
+        return;
     }
+    std::string buffer = std::move(*optBuffer);
 
     // Parse the request string into an HTTPRequest object
     auto request = Parser::parseRequest(buffer);
@@ -183,11 +174,50 @@ void Server::handleClient(int clientSocket, uint32_t events)
     }
 }
 
+// This is always run in a worker thread
+std::optional<std::string> Server::receiveData(int clientSocket)
+{
+    // Receiving message from client
+    std::string buffer = getFromBuffer(clientSocket);
+    size_t oldSize;
+    int bytesToReceive = 1024;
+    while (buffer.find("\r\n\r\n") == std::string::npos) {
+        oldSize = buffer.size();
+        buffer.resize(buffer.size() + bytesToReceive);
+        // This is a non-blocking recv due to non-blocking socket, exits thread if not done receiving data
+        int bytes = recv(clientSocket, buffer.data() + oldSize, bytesToReceive, 0);
+        if (bytes == -1) {
+            buffer.resize(oldSize);
+            // No more data, store data in buffer for next time
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                addToBuffer(std::move(buffer), clientSocket);
+                return std::nullopt;
+            }
+            // Other errors
+            std::cerr << "Failed to read from client: " << strerror(errno) << std::endl;
+            closeConnection(clientSocket);
+            return std::nullopt;
+        }
+        // Client closed connection before completing transmission
+        if (bytes == 0) {
+            std::cout << "Client disconnected, fd=" << clientSocket << "\n";
+            closeConnection(clientSocket);
+            return std::nullopt;
+        }
+        // Resize buffer to get rid of unused data (very cheap, just updates internal size)
+        buffer.resize(oldSize + bytes);
+    }
+    return buffer;
+}
+
 void Server::closeConnection(int clientSocket)
 {
     epoll_ctl(m_epollFd, EPOLL_CTL_DEL, clientSocket, nullptr);
     close(clientSocket);
     m_lastActiveTimes.erase(clientSocket);
+    m_bufferMutex.lock();
+    m_connectionBuffers.erase(clientSocket);
+    m_bufferMutex.unlock();
     std::cout << "Closed connection, fd=" << clientSocket << "\n";
 }
 
@@ -227,4 +257,22 @@ void Server::timeOutConnections()
             break; // since the queue is ordered, we can stop checking further
         }
     }
+}
+
+void Server::addToBuffer(std::string buffer, int clientSocket)
+{
+    std::lock_guard<std::mutex> lock(m_bufferMutex);
+    m_connectionBuffers[clientSocket] += buffer;
+}
+
+std::string Server::getFromBuffer(int clientSocket)
+{
+    std::lock_guard<std::mutex> lock(m_bufferMutex);
+    auto it = m_connectionBuffers.find(clientSocket);
+    if (it == m_connectionBuffers.end()) {
+        return "";
+    }
+    std::string buffer = std::move(it->second);
+    m_connectionBuffers.erase(it);
+    return buffer;
 }
