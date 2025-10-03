@@ -1,8 +1,8 @@
 # TODO
 
 - Fix closeConnection not being thread safe
-    * Uh oh, this is actually a symptom of a much bigger problem (design issue)
-    * Turns out I probably need to have all IO happen in the epoll thread, otherwise there will be race conditions that I haven't considered. For example, currently I don't consider that send can return EAGAIN if the OS buffer for the socket is full. Also If two threads are handling the samee client (multiple requests) then there is synchronization issues with them both sending data at the same time.
+    * To fix this, we're going to use EPOLLONESHOT so that any worker thread is guaranteed to be the only worker interacting with the socket (ie we can close and remove it from epoll safely)
+    * Still probably need an extra mutex for removing old data unless we let the main epoll thread do that
     
 - Benchmark large concurrent connections
 - Implement proper server shutdown using signals or equivalent

@@ -153,20 +153,21 @@ void Server::handleClient(int clientSocket, uint32_t events)
 
     // Parse the request string into an HTTPRequest object
     auto request = Parser::parseRequest(buffer);
+    // Handle the request and generate a response
+    auto response = handleRequest(*request);
+    std::string responseStr = response.toString();
+    send(clientSocket, responseStr.c_str(), responseStr.size(), 0);
+
+    // If we failed to parse the request, close the connection after sending BadRequest response
     if (!request) {
         std::cerr << "Failed to parse HTTP request" << std::endl;
         closeConnection(clientSocket);
         return;
     }
-    else {
-        std::cout << "Parsed HTTP request from fd=" << clientSocket << std::endl;
-        std::cout << HTTPRequest::getMethodString(request->getMethod()) << " " << request->getRoute() << std::endl;
-    }
 
-    // Handle the request and generate a response
-    auto response = handleRequest(*request);
-    std::string responseStr = response.toString();
-    send(clientSocket, responseStr.c_str(), responseStr.size(), 0);
+    // Debug output
+    std::cout << "Parsed HTTP request from fd=" << clientSocket << std::endl;
+    std::cout << HTTPRequest::getMethodString(request->getMethod()) << " " << request->getRoute() << std::endl;
 
     // Close connection if "Connection: close" header is present
     auto connectionHeader = request->getHeader("Connection");

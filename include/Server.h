@@ -60,15 +60,26 @@ private:
 
     void setupSocket();
     void acceptConnection();
+    /// @brief This is always run in a worker thread, handles parsing and responding to a client request.
     void handleClient(int clientSocket, uint32_t events);
+    /// @brief This is always run in the main epoll thread
     std::optional<std::string> receiveData(int clientSocket);
+    /// @brief Close and clean up a client connection. This is only safe to call from the main epoll thread.
+    /// @param clientSocket The socket file descriptor of the client to close.
     void closeConnection(int clientSocket);
+    /// @brief Set a socket to non-blocking mode.
     void setNonBlocking(int fd);
-
+    /// @brief Update the last active time for a client connection. This is only safe to call from the main epoll thread.
     void updateLastActive(int clientSocket);
+    /// @brief Check for and time out idle connections. This is only safe to call from the main epoll thread.
     void timeOutConnections();
-
+    /// @brief Add data to the buffer for a client connection. This is only safe to call from the main epoll thread.
+    /// @param buffer The data to add.
+    /// @param clientSocket The socket file descriptor of the client.
     void addToBuffer(std::string buffer, int clientSocket);
+    /// @brief Get and clear the buffer for a client connection. This is only safe to call from the main epoll thread.
+    /// @param clientSocket The socket file descriptor of the client.
+    /// @return The buffered data. Can be empty if no data is buffered.
     std::string getFromBuffer(int clientSocket);
 };
     
