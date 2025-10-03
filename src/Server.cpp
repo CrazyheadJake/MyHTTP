@@ -45,7 +45,8 @@ void Server::start()
         for (int i = 0; i < n; i++) {
             if (events[i].data.fd == m_serverSocket) {
                 acceptConnection();
-            } else {
+            } 
+            else {
                 int clientFd = events[i].data.fd;
                 uint32_t ev = events[i].events;
                 updateLastActive(clientFd);
