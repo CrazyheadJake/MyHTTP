@@ -9,6 +9,12 @@ A lightweight, high-performance HTTP server built in modern C++ using one epoll 
 - Extensible routing system for dynamic endpoints
 - Written in C++23 for performance and clarity
 
+## Requirements
+- C++23 compatible compiler (e.g., g++, clang++)
+- [CMake](https://cmake.org/) (≥ 3.16 recommended)
+- POSIX-compatible system (Linux/macOS; Windows WSL works as well)
+- (Optional) [GoogleTest](https://github.com/google/googletest) for running the unit tests
+
 ## Installation
 ```bash
 git clone https://github.com/CrazyheadJake/MyHTTP.git

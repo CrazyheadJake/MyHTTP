@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26.3)
+cmake_minimum_required(VERSION 3.16.0)
 project(MyHTTP)
 
 set(CMAKE_CXX_STANDARD 23)
