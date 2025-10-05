@@ -1,17 +1,17 @@
-Running 10s test @ http://localhost:8080/random
-  4 threads and 10000 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency    13.85ms    4.75ms  34.98ms   64.58%
-    Req/Sec    90.32k    16.70k  135.72k    59.52%
-  3568740 requests in 10.06s, 367.23MB read
-Requests/sec: 354677.27
-Transfer/sec:     36.50MB
-
 Running 10s test @ http://localhost:8080/test.txt
   4 threads and 10000 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency    42.30ms    9.18ms  91.12ms   69.91%
-    Req/Sec    54.84k     7.68k   85.00k    72.82%
-  2173955 requests in 10.10s, 1.04GB read
-Requests/sec: 215242.77
-Transfer/sec:    105.71MB
+    Latency    12.55ms   20.77ms 909.65ms   99.48%
+    Req/Sec    91.62k    13.64k  135.67k    60.53%
+  3620620 requests in 10.09s, 1.74GB read
+Requests/sec: 358980.12
+Transfer/sec:    176.31MB
+
+Running 10s test @ http://localhost:8080/random
+  4 threads and 10000 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    11.07ms    3.98ms  32.65ms   70.35%
+    Req/Sec   114.50k    20.83k  151.51k    64.34%
+  4507142 requests in 10.05s, 463.79MB read
+Requests/sec: 448329.22
+Transfer/sec:     46.13MB

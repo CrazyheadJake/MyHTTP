@@ -163,6 +163,7 @@ void Server::handleClient(int clientSocket, uint32_t events)
     // Handle the request and generate a response
     auto response = handleRequest(*request);
     std::string responseStr = response.toString();
+
     send(clientSocket, responseStr.c_str(), responseStr.size(), 0);
 
     // If we failed to parse the request, close the connection after sending BadRequest response

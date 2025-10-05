@@ -9,7 +9,7 @@
 class IntegrationTest : public ::testing::Test {
 protected:
     static void runServer() {
-        Server server(8081, "../../public/", 16, 1);
+        Server server(8081, "../../public/", 16, 5);
         server.start(); // Blocking call
     }
     static std::thread serverThread;
@@ -80,4 +80,34 @@ TEST_F(IntegrationTest, PartialData) {
     // Simple check: status 200 OK
     std::string response(buffer, n);
     EXPECT_TRUE(response.find("200 OK") != std::string::npos);
+}
+
+TEST_F(IntegrationTest, StressTest) {
+    const char* request = "GET /test.txt HTTP/1.1\r\nHost: localhost\r\n\r\n";
+    int numConnections = 1000;
+    int socks[numConnections];
+    char buffer[1024] = {0};
+
+    // Connect as a client
+    for (int i = 0; i < numConnections; i++) {
+        socks[i] = connectClient();
+    }
+    for (int i = 0; i < numConnections; i++) {
+        // Send HTTP GET request
+        send(socks[i], request, strlen(request), 0);
+    }
+    for (int i = 0; i < numConnections; i++) {
+        std::string response;
+        int n = recv(socks[i], buffer, sizeof(buffer), 0);
+        response.append(buffer, n);
+        while (n > 0) {
+            if (response.find("laborum.") != std::string::npos)
+                break;
+            n = recv(socks[i], buffer, sizeof(buffer), 0);
+            response.append(buffer, n);
+        }
+        // Check to see if end of message was received
+        EXPECT_TRUE(response.find("laborum.") != std::string::npos);
+        close(socks[i]);
+    }
 }
