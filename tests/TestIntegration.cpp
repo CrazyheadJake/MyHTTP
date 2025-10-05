@@ -101,13 +101,13 @@ TEST_F(IntegrationTest, StressTest) {
         int n = recv(socks[i], buffer, sizeof(buffer), 0);
         response.append(buffer, n);
         while (n > 0) {
-            if (response.find("laborum.") != std::string::npos)
+            if (response.find("EndOfTest") != std::string::npos)
                 break;
             n = recv(socks[i], buffer, sizeof(buffer), 0);
             response.append(buffer, n);
         }
         // Check to see if end of message was received
-        EXPECT_TRUE(response.find("laborum.") != std::string::npos);
+        EXPECT_TRUE(response.find("EndOfTest") != std::string::npos);
         close(socks[i]);
     }
 }

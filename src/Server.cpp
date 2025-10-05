@@ -126,7 +126,6 @@ void Server::acceptConnection()
         }
 
         setNonBlocking(clientSocket);
-
         epoll_event ev;
         // interested in read events, edge-triggered, and only let one thread access a socket at a time (epolloneshot)
         ev.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
@@ -164,7 +163,12 @@ void Server::handleClient(int clientSocket, uint32_t events)
     auto response = handleRequest(*request);
     std::string responseStr = response.toString();
 
-    send(clientSocket, responseStr.c_str(), responseStr.size(), 0);
+    // Send data, this will block if the kernel send buffer is filled up
+    if (sendData(clientSocket, std::move(responseStr)) == -1) {
+        std::cerr << "Failed to send response to client: " << strerror(errno) << std::endl;
+        closeConnection(clientSocket);
+        return;
+    }
 
     // If we failed to parse the request, close the connection after sending BadRequest response
     if (!request) {
@@ -226,6 +230,26 @@ std::optional<std::string> Server::receiveData(int clientSocket)
         buffer.resize(oldSize + bytes);
     }
     return buffer;
+}
+
+ssize_t Server::sendData(int clientSocket, std::string data)
+{
+    // Simple send; if we need to block just keep trying until it gets sent
+    // Not a good solution, but we so rarely block that its almost a non issue
+    size_t sent = 0;
+    while (sent < data.size()) {
+        if (sent != 0)
+            std::cout << "Send blocked, fd=" << clientSocket << std::endl;
+        int bytesSent = send(clientSocket, data.c_str() + sent, data.size() - sent, 0);
+        if (bytesSent == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;
+            }
+            return -1;
+        }
+        sent += bytesSent;
+    }
+    return sent;
 }
 
 void Server::closeConnection(int clientSocket)

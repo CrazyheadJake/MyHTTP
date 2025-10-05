@@ -66,6 +66,9 @@ private:
     void handleClient(int clientSocket, uint32_t events);
     /// @brief This is always run in the main epoll thread
     std::optional<std::string> receiveData(int clientSocket);
+    /// @brief Send data to a client. This can block if the kernel send buffer is full, though it is extremely rare.
+    /// @return number of bytes sent on success, -1 on error and ERRNO set
+    ssize_t sendData(int clientSocket, std::string data);
     /// @brief Close and clean up a client connection. This is only safe to call from the main epoll thread.
     /// @param clientSocket The socket file descriptor of the client to close.
     void closeConnection(int clientSocket);
