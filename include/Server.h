@@ -53,6 +53,8 @@ private:
     sockaddr_in m_serverAddress;
     
     std::priority_queue<ClientConnection, std::vector<ClientConnection>, std::greater<ClientConnection>> m_activeConnections;
+
+    std::mutex m_lastActiveMutex;
     std::unordered_map<int, std::chrono::steady_clock::time_point> m_lastActiveTimes;
 
     std::mutex m_bufferMutex;

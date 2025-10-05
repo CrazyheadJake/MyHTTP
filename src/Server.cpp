@@ -128,7 +128,8 @@ void Server::acceptConnection()
         setNonBlocking(clientSocket);
 
         epoll_event ev;
-        ev.events = EPOLLIN | EPOLLET;  // interested in read events, edge-triggered
+        // interested in read events, edge-triggered, and only let one thread access a socket at a time (epolloneshot)
+        ev.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
         ev.data.fd = clientSocket;
 
         if (epoll_ctl(m_epollFd, EPOLL_CTL_ADD, clientSocket, &ev) == -1) {
@@ -137,16 +138,22 @@ void Server::acceptConnection()
             continue;
         }
         updateLastActive(clientSocket);
-        std::cout << "Accepted new client, fd=" << clientSocket << "\n";
+        // std::cout << "Accepted new client, fd=" << clientSocket << "\n";
     }
 }
 
 // This is run in a worker thread
 void Server::handleClient(int clientSocket, uint32_t events)
 {
+    epoll_event ev;
+    ev.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
+    ev.data.fd = clientSocket;
+
     // Receiving message from client
     auto optBuffer = receiveData(clientSocket);
     if (!optBuffer) {
+        // Rearm the fd in epoll, this will fail if receiveData closed the connection due to malformed data
+        epoll_ctl(m_epollFd, EPOLL_CTL_MOD, clientSocket, &ev);
         return;
     }
     std::string buffer = std::move(*optBuffer);
@@ -166,13 +173,16 @@ void Server::handleClient(int clientSocket, uint32_t events)
     }
 
     // Debug output
-    std::cout << "Parsed HTTP request from fd=" << clientSocket << std::endl;
-    std::cout << HTTPRequest::getMethodString(request->getMethod()) << " " << request->getRoute() << std::endl;
+    // std::cout << "Parsed HTTP request from fd=" << clientSocket << std::endl;
+    // std::cout << HTTPRequest::getMethodString(request->getMethod()) << " " << request->getRoute() << std::endl;
 
     // Close connection if "Connection: close" header is present
     auto connectionHeader = request->getHeader("Connection");
     if (connectionHeader && *connectionHeader == "close") {
         closeConnection(clientSocket);
+    }
+    else {      // Rearm the fd in epoll
+        epoll_ctl(m_epollFd, EPOLL_CTL_MOD, clientSocket, &ev);
     }
 }
 
@@ -195,6 +205,11 @@ std::optional<std::string> Server::receiveData(int clientSocket)
                 addToBuffer(std::move(buffer), clientSocket);
                 return std::nullopt;
             }
+            if (errno == ECONNRESET) {
+                closeConnection(clientSocket);
+                return std::nullopt;
+            }
+
             // Other errors
             std::cerr << "Failed to read from client: " << strerror(errno) << std::endl;
             closeConnection(clientSocket);
@@ -202,7 +217,7 @@ std::optional<std::string> Server::receiveData(int clientSocket)
         }
         // Client closed connection before completing transmission
         if (bytes == 0) {
-            std::cout << "Client disconnected, fd=" << clientSocket << "\n";
+            // std::cout << "Client disconnected, fd=" << clientSocket << "\n";
             closeConnection(clientSocket);
             return std::nullopt;
         }
@@ -216,11 +231,13 @@ void Server::closeConnection(int clientSocket)
 {
     epoll_ctl(m_epollFd, EPOLL_CTL_DEL, clientSocket, nullptr);
     close(clientSocket);
+    m_lastActiveMutex.lock();
     m_lastActiveTimes.erase(clientSocket);
+    m_lastActiveMutex.unlock();
     m_bufferMutex.lock();
     m_connectionBuffers.erase(clientSocket);
     m_bufferMutex.unlock();
-    std::cout << "Closed connection, fd=" << clientSocket << "\n";
+    // std::cout << "Closed connection, fd=" << clientSocket << "\n";
 }
 
 // Helper: set socket to be non-blocking
@@ -232,6 +249,7 @@ void Server::setNonBlocking(int fd)
 
 void Server::updateLastActive(int clientSocket)
 {
+    std::lock_guard<std::mutex> lock(m_lastActiveMutex);
     auto now = std::chrono::steady_clock::now();
     m_lastActiveTimes[clientSocket] = now;
     m_activeConnections.push(ClientConnection{clientSocket, now});
@@ -246,11 +264,14 @@ void Server::timeOutConnections()
         if (duration > m_timeoutSeconds) {
             // Look up to see if this is still the last active time for this socket
             // or if the socket is already closed
+            m_lastActiveMutex.lock();
             auto it = m_lastActiveTimes.find(conn.socket);
             if (it == m_lastActiveTimes.end() || it->second != conn.lastActive) {
                 m_activeConnections.pop(); // stale entry, skip it
+                m_lastActiveMutex.unlock();
                 continue;
             }
+            m_lastActiveMutex.unlock();
             std::cout << "Timing out connection, fd=" << conn.socket << "\n";
             // Remove from epoll and close socket
             closeConnection(conn.socket);
