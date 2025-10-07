@@ -12,7 +12,7 @@ A lightweight, high-performance HTTP server built in modern C++ using one epoll 
 ## Requirements
 - C++23 compatible compiler (e.g., g++, clang++)
 - [CMake](https://cmake.org/) (≥ 3.16 recommended)
-- POSIX-compatible system (Linux/macOS; Windows WSL works as well)
+- Linux system (Windows WSL works as well)
 - (Optional) [GoogleTest](https://github.com/google/googletest) for running the unit tests
 
 ## Installation
