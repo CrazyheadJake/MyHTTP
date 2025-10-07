@@ -23,21 +23,25 @@ std::optional<HTTPResponse> Router::getStaticFile(const HTTPRequest &request) co
         return std::nullopt;
     Route route = request.getRoute();
 
-    // Strip leading "/" so it doesn’t mess with path joining
+    // Add leading "/" so its consistent
     std::string urlPath = route.string();
-    if (!urlPath.empty() && urlPath.front() == '/')
-        urlPath.erase(0, 1);    
-    std::filesystem::path fullPath = m_rootDir.string() + "/" + urlPath;
-
-    // Handle directory requests
-    if (std::filesystem::is_directory(fullPath)) {
-        fullPath.concat("/index.html");
-    }
+    if (!urlPath.empty() && urlPath.front() != '/')
+        urlPath.insert(0, "/");   
+    
+    std::filesystem::path fullPath = m_rootDir.string() + urlPath;
 
     // Security check: canonical must start with rootDir
     std::filesystem::path canonical = std::filesystem::weakly_canonical(fullPath);
     if (canonical.string().rfind(m_rootDir.string(), 0) != 0) {
         return ResponseGenerator::generateForbiddenResponse();
+    }
+
+    // Handle directory requests
+    if (std::filesystem::is_directory(canonical)) {
+        // Fixes bugs where the client doesn't realize it's a directory
+        if (!urlPath.empty() && urlPath.back() != '/')
+            return ResponseGenerator::generateRedirectResponse(urlPath + "/");
+        canonical.concat("/index.html");
     }
 
     // Check if file exists

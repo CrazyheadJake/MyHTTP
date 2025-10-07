@@ -1,0 +1,172 @@
+body {
+    background-color:blanchedalmond;
+    overflow-x: hidden;
+    background-image: url("images/orangebg.jpg");
+    margin: 20px;
+    padding: 20px;
+    max-width: 1600px;
+    color:rgb(80, 40, 11);
+    font-family: monospace;
+    font-size: 15px
+}
+
+header {
+    padding: 10px;
+    color:rgb(210, 92, 7);
+    background-color: rgb(255, 227, 151);
+    border-style: double;
+    border-color:chocolate;
+    border-radius: 5px;
+    border-width: 5px;
+}
+
+main {
+    color:rgb(51, 43, 0);
+}
+
+footer {
+    padding: 1px;
+    margin-top: 20px;
+    color:black;
+    background-color: white;
+    border-style: double;
+    border-color:chocolate;
+    border-radius: 5px;
+    border-width: 5px;
+}
+
+h1 {
+    font-size: 35px;
+    color: black
+}
+
+h2 {
+    font-size: 30px;
+    color: rgb(145, 110, 21);
+}
+
+h3 {
+    font-size: 25px;
+    color: rgb(133, 87, 0)
+}
+
+p {
+    font-size: 20px;
+    color: black;
+}
+
+ul {
+    list-style-type: none;
+    margin: 10px;
+    overflow: hidden;
+}
+ul li {
+    margin-left: 10px;
+    margin-right: 10px;
+    float: left;
+    background-color:antiquewhite;
+}
+
+li:hover {
+    background-color:gray;
+}
+
+.active {
+    background-color: green;
+}
+
+a:active {
+    color:brown;
+}
+a:hover {
+    color:darkgreen
+}
+
+img {
+    border-style:ridge;
+    border-color:brown;
+    caption-side: bottom;
+    width: 300px;
+}
+
+tr td {
+    border-bottom:2px solid gray;
+    min-width:80px;
+    padding:10px;
+}
+tr th {
+    padding:10px;
+    min-width:80px;
+    font-size: 25px;
+}
+th, td {border:1px solid gray;}
+
+tr:nth-child(even) {
+    background-color:orange;
+}
+tr:nth-child(odd) {
+    background-color:rgb(199, 130, 2);
+}
+fieldset {
+    background-color: orange;
+}
+input {
+    border-radius: 1cap;
+    background-color: blanchedalmond;
+}
+textarea {
+    border-radius: 1cap;
+    background-color: blanchedalmond;
+}
+
+select {
+    border-radius: 1cap;
+    background-color: blanchedalmond;
+}
+ol {
+    list-style-type: upper-roman;
+    color: rgb(80, 40, 11);
+    margin: 10px;
+}
+div#booklist {
+    background-color: rgb(129, 94, 4);
+    border-radius: 1cap;
+    padding:1cap;
+}
+
+span#link {
+    color:rgb(47, 47, 104);
+}
+
+.definition {
+    padding:10px;
+    margin-bottom:5px;
+    border-style:dashed;
+    border-radius: 1cap;
+    border-color:black;
+}
+.term {
+    font-weight: bold;
+}
+
+#title {
+    font-weight: bold;
+    font-style: oblique;
+    font-variant: small-caps;
+}
+
+#desc {
+    font-style: italic;
+}
+
+img:hover {
+    border-color:aqua;
+}
+
+.definition:hover {
+    border-color:gray
+}
+
+a[target="_blank"] {
+    font-style: italic;
+}

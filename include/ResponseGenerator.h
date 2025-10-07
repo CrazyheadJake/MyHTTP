@@ -7,6 +7,7 @@ namespace ResponseGenerator {
 
     /// @brief Generate a simple HTML response with the given content.
     HTTPResponse generateHTMLResponse(const std::string& htmlContent);
+    HTTPResponse generateRedirectResponse(const std::string& location);
     HTTPResponse generateNotFoundResponse();
     HTTPResponse generateBadRequestResponse();
     HTTPResponse generateForbiddenResponse();

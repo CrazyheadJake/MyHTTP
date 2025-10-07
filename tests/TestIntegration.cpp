@@ -9,7 +9,7 @@
 class IntegrationTest : public ::testing::Test {
 protected:
     static void runServer() {
-        Server server(8081, "../../public/", 16, 5);
+        Server server(8081, "../../public_html/", 16, 5);
         server.start(); // Blocking call
     }
     static std::thread serverThread;

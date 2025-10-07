@@ -163,6 +163,11 @@ void Server::handleClient(int clientSocket, uint32_t events)
     auto response = handleRequest(*request);
     std::string responseStr = response.toString();
 
+    // Debug output
+    std::cout << "Parsed HTTP request from fd=" << clientSocket << std::endl;
+    std::cout << HTTPRequest::getMethodString(request->getMethod()) << " " << request->getRoute() << std::endl;
+    std::cout << responseStr << std::endl;
+    
     // Send data, this will block if the kernel send buffer is filled up
     if (sendData(clientSocket, std::move(responseStr)) == -1) {
         std::cerr << "Failed to send response to client: " << strerror(errno) << std::endl;
@@ -176,10 +181,6 @@ void Server::handleClient(int clientSocket, uint32_t events)
         closeConnection(clientSocket);
         return;
     }
-
-    // Debug output
-    // std::cout << "Parsed HTTP request from fd=" << clientSocket << std::endl;
-    // std::cout << HTTPRequest::getMethodString(request->getMethod()) << " " << request->getRoute() << std::endl;
 
     // Close connection if "Connection: close" header is present
     auto connectionHeader = request->getHeader("Connection");

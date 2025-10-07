@@ -53,7 +53,8 @@ HTTPResponse ResponseGenerator::generateNotImplementedResponse()
     };
     HTTPResponse response(HTTPResponse::Status::NOT_IMPLEMENTED, std::move(headers));
     response.setBody(message);
-    return response;}
+    return response;
+}
 
 HTTPResponse ResponseGenerator::generateFileResponse(const std::filesystem::path &filePath)
 {
@@ -79,6 +80,18 @@ HTTPResponse ResponseGenerator::generateHTMLResponse(const std::string &htmlCont
     };
     HTTPResponse response(HTTPResponse::Status::OK, std::move(headers));
     response.setBody(htmlContent);
+    return response;
+}
+
+HTTPResponse ResponseGenerator::generateRedirectResponse(const std::string &location)
+{
+    std::string message = "301 Moved Permanently";
+    std::unordered_map<std::string, std::string> headers = {
+        {"Content-Type", "text/plain"},
+        {"Location", location}
+    };
+    HTTPResponse response(HTTPResponse::Status::MOVED_PERMANENTLY, std::move(headers));
+    response.setBody(message);
     return response;
 }
 

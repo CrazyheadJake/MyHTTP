@@ -12,6 +12,7 @@ public:
         OK = 200,
         CREATED = 201,
         NO_CONTENT = 204,
+        MOVED_PERMANENTLY = 301,
         BAD_REQUEST = 400,
         FORBIDDEN = 403,
         NOT_FOUND = 404,
@@ -51,6 +52,8 @@ public:
             case Status::NOT_FOUND: return "Not Found";
             case Status::INTERNAL_SERVER_ERROR: return "Internal Server Error";
             case Status::NOT_IMPLEMENTED: return "Not Implemented";
+            case Status::MOVED_PERMANENTLY: return "Moved Permanently";
+            case Status::FORBIDDEN: return "Forbidden";
             default: return "Unknown Status";
         }
     }

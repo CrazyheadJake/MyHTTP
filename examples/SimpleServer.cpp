@@ -8,7 +8,7 @@ const int PORT = 8080;
 
 int main() {
     srand(time(0));
-    Server server(PORT, "../../public/", 32);
+    Server server(PORT, "../../public_html/", 32);
     server.addRoute("/random", HTTPRequest::Method::GET, [](const HTTPRequest& req) {
         int randomNumber = rand() % 100; // Generate a random number between 0 and 99
         HTTPResponse res = ResponseGenerator::generateHTMLResponse(

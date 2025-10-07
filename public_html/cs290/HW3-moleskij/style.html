@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="main.css">
+    <title>Jacob Moleski</title>        
+</head>
+<body>
+    <header>
+        <h1 id="title">jacob moleski</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Homework 2</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="interests.html">Interests</a></li>
+                <li><a class="active" href="style.html" target="_blank">Style</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section>
+        <h2 style="font-family: 'Courier New', Courier, monospace;">Styles</h2>
+        <article>
+            <h3>Locations</h3>
+            <p>There are 3 main locations where css style is located. The first is inline styling. 
+                This is present in my h2 header on all pages, changing the font to a different font. 
+                It is also present for my figure with book covers. I used the style there to allow the
+                 book covers to be side by side. The second location where styles are often found is in the style
+                tag in the head of the html document. I used this for my interests.html page to change the font 
+                of captions and the color of the captions, as well as changing all p tags to be in small uppercase.
+                The third place where style is located is in a designated css file, which for me is my main.css file.
+                This is where the bulk of my styling is, such as my styling for the nav bar and the styling for the background
+                of every page.</p>
+        </article>
+        <article>
+            <h3>Selectors</h3>
+            <p>There are different kinds of selectors you can use for css. The most common selector just uses the type of the element to change the styling of
+                all elements of that type. Class selecters are used to select all elements with that class. In my website, I use class selectors to select all
+                elements with a class of "definition" (in index.html) to then put a dashed border around the definition. Id selectors will select the element that
+                exactly matches the given id. I used this to style my name at the top of the page, using the id of 'title' and then selecting it and making it bold with
+                small caps. Attribute selectors are used to select any element with an attribute that matches a certain value. For example a[target="_blank"] would select
+                all anchors with their target set to "_blank". I used this exact selector to style my Style page link to be italic. Lastly, there are pseudo selectors, such as
+                :hover and :active. These select all elements based on changing information, such as whether my cursor is hovering over the element or whether the element is being
+                clicked. I used :hover to change the border color of my images.
+            </p>
+        </article>
+        <article>
+            <h3>Box Model</h3>
+            <p>The box model is a model for how content is displayed in html. The outermost layer is the margin. This isn't affected by background color, and the border
+                is inside of it. You can have a different margin on each of the 4 sides if you want. Next comes the border. This can be styled to fit how you want it to
+                look. You can change the border to be different on every side/corner. Inside of the border, you have padding. Like margin, padding can be different on every side.
+                Padding is affected by background color, and it is inside of the border. The innermost layer is the actual content. This would be like the actual text that you want
+                to display. One example of where I use the box model is in the footer. I give a top margin to separate the footer from everything else. Then, I give it a unique border.
+                Inside of the border, I have just some padding so that the border doesn't touch the text. Finally, inside of the margin, border, and padding, there is the content, which
+                is some text in this case.
+            </p>
+        </article>
+        <article>
+            <h3>Inheritance & Specificity</h3>
+            <p>Inheritance means that when any element is given some styling, all decendants of that element can receive that styling if it is an attribute that can be
+                inherited. For example, in my body styling, I set the font-size to 15px. This means that if there is ever any text within it, it will inherit that same
+                size, unless it has a more specific size. This is where specificity comes into play. If that text has more specific styling, such as from a paragraph element,
+                then that styling will override the body style. I override my paragraph text size to be 20px instead of the 15px specified by the body css.
+            </p>
+        </article>
+    </section>
+    <footer>
+        <p>&copy; April 22, 2024 Oregon State University</p>
+    </footer>
+</body>
+</html>
