@@ -9,8 +9,7 @@
 class WorkerPool {
 public:
     WorkerPool(size_t numThreads);
-    ~WorkerPool();
-
+    void stop();
     void enqueue(std::function<void()> task);
 
 private:

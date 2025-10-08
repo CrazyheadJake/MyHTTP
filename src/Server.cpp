@@ -5,9 +5,12 @@
 #include "Parser.h"
 #include "ResponseGenerator.h"
 #include <sys/epoll.h>
+#include <sys/eventfd.h>
 #include "WorkerPool.h"
 #include <fcntl.h>
 #include <queue>
+
+int Server::m_shutdownEventFd = -1;
 
 Server::Server(int port, const std::filesystem::path &rootDir, int numThreads, int timeoutSeconds) 
     : m_timeoutSeconds(timeoutSeconds), m_port(port), m_router(rootDir), m_pool(WorkerPool(numThreads))
@@ -22,15 +25,23 @@ Server::Server(int port, const std::filesystem::path &rootDir, int numThreads, i
     ev.data.fd = m_serverSocket;
     setNonBlocking(m_serverSocket);
     epoll_ctl(m_epollFd, EPOLL_CTL_ADD, m_serverSocket, &ev);
+
+    ev.events = EPOLLIN | EPOLLET;
+    if (m_shutdownEventFd == -1)
+        m_shutdownEventFd = eventfd(0, EFD_NONBLOCK);
+    ev.data.fd = m_shutdownEventFd;
+    epoll_ctl(m_epollFd, EPOLL_CTL_ADD, m_shutdownEventFd, &ev);
+
+    std::signal(SIGINT, signalHandler);
 }
 
 void Server::start()
 {
     listen(m_serverSocket, 10);
-    m_running = true;
+    // m_running = 1;
     epoll_event events[64];
-
-    while (true) {
+    bool running = true;
+    while (running) {
         // Calculate wait time for epoll based on next connection timeout
         int waitTime = -1;
         if (!m_activeConnections.empty()) {
@@ -45,7 +56,10 @@ void Server::start()
         for (int i = 0; i < n; i++) {
             if (events[i].data.fd == m_serverSocket) {
                 acceptConnection();
-            } 
+            }
+            // If we have received shutdown signal
+            else if (events[i].data.fd == m_shutdownEventFd)
+                running = false;
             else {
                 int clientFd = events[i].data.fd;
                 uint32_t ev = events[i].events;
@@ -60,12 +74,30 @@ void Server::start()
     }
 }
 
-void Server::stop()
+Server::~Server()
 {
-    if (m_running) {
-        close(m_serverSocket);
-        m_running = false;
+    // Close server socket
+    close(m_serverSocket);
+    // Join all worker threads
+    m_pool.stop();
+    for (auto& [socket, time]: m_lastActiveTimes) {
+        close(socket);
     }
+    m_connectionBuffers.clear();
+    m_activeConnections = std::priority_queue<ClientConnection, std::vector<ClientConnection>, std::greater<ClientConnection>>();
+
+    // Close epoll instance
+    close(m_epollFd);
+
+    int m_serverSocket = -1;
+    int m_epollFd = -1;
+}
+
+void Server::signalHandler(int signal) {
+    uint64_t one = 1;
+    std::string message = "\nShutting down Server...\n";
+    write(STDOUT_FILENO, message.data(), message.size());
+    write(m_shutdownEventFd, &one, sizeof(one));
 }
 
 void Server::addRoute(Route route, int method, Handler handler) {
@@ -164,9 +196,9 @@ void Server::handleClient(int clientSocket, uint32_t events)
     std::string responseStr = response.toString();
 
     // Debug output
-    std::cout << "Parsed HTTP request from fd=" << clientSocket << std::endl;
-    if (request)
-        std::cout << HTTPRequest::getMethodString(request->getMethod()) << " " << request->getRoute() << std::endl;
+    // std::cout << "Parsed HTTP request from fd=" << clientSocket << std::endl;
+    // if (request)
+    //     std::cout << HTTPRequest::getMethodString(request->getMethod()) << " " << request->getRoute() << std::endl;
     // std::cout << "Response: \n" << responseStr << std::endl;
     
     // Send data, this will block if the kernel send buffer is filled up

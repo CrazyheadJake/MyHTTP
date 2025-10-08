@@ -11,6 +11,7 @@
 #include "WorkerPool.h"
 #include "Router.h"
 #include <chrono>
+#include <csignal>
 
 struct ClientConnection {
     int socket;
@@ -28,10 +29,9 @@ public:
     /// @param numThreads The number of worker threads in the thread pool. There is always only one acceptor thread.
     /// @param timeoutSeconds The timeout in seconds for idle connections.
     Server(int port, const std::filesystem::path& rootDir, int numThreads = 16, int timeoutSeconds = 30);
+    ~Server();
     /// @brief Start the server's main loop. This will block.
     void start();
-    /// @brief Stop the server. This is not yet implemented.
-    void stop();
     /// @brief Add a route to the server's router.
     /// @param route The route path.
     /// @param method The HTTP method(s) for this route (bitmask of HTTPRequest::Method).
@@ -42,10 +42,13 @@ public:
     /// @return The generated HTTP response.
     HTTPResponse handleRequest(const std::optional<HTTPRequest>& request) const;
 
+    /// @brief Handle signals, such as the shutdown signal (Ctrl + c)
+    static void signalHandler(int signal);
+
 private:
     int m_timeoutSeconds;
     int m_port;
-    bool m_running = false;
+    static int m_shutdownEventFd;
     int m_serverSocket = -1;
     int m_epollFd = -1;
     WorkerPool m_pool;

@@ -8,7 +8,7 @@ WorkerPool::WorkerPool(size_t numThreads)
     }
 }
 
-WorkerPool::~WorkerPool()
+void WorkerPool::stop()
 {
     // Join all threads
     m_queueMutex.lock();
