@@ -1,6 +1,5 @@
 # TODO
 
-- Implement reading content body from clients
 - Implement proper server shutdown using signals or equivalent
 - Generally more test cases and unit tests
 - Add caching for static files
