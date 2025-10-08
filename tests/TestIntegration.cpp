@@ -6,11 +6,28 @@
 #include <unistd.h>
 #include "Server.h"
 
+const int PORT = 8081;
+
 class IntegrationTest : public ::testing::Test {
 protected:
     static void runServer() {
-        Server server(8081, "../../public_html/", 16, 5);
-        server.start(); // Blocking call
+        std::cout << "CTEST_FULL_OUTPUT" << std::endl;
+        srand(time(0));
+        Server server(PORT, "../../public_html/", 32);
+        server.addRoute("/random", HTTPRequest::Method::GET, [](const HTTPRequest& req) {
+            int randomNumber = rand() % 100; // Generate a random number between 0 and 99
+            HTTPResponse res = ResponseGenerator::generateHTMLResponse(
+                std::to_string(randomNumber) + "\n<a href=\"/\">Link back to the homepage</a>"
+            );
+            return res;
+        });
+        server.addRoute("/cs290/HW3-moleskij/contact.html", HTTPRequest::Method::POST, [](const HTTPRequest& req) {
+            HTTPResponse res = ResponseGenerator::generateHTMLResponse(
+                req.getBody() + "\n<a href=\"/cs290/HW3-moleskij/contact.html\">Link back to the contacts</a>"
+            );
+            return res;
+        });
+        server.start();
     }
     static std::thread serverThread;
 
@@ -84,7 +101,7 @@ TEST_F(IntegrationTest, PartialData) {
 
 TEST_F(IntegrationTest, StressTest) {
     const char* request = "GET /test.txt HTTP/1.1\r\nHost: localhost\r\n\r\n";
-    int numConnections = 1000;
+    int numConnections = 1;     // Change this to a larger value to stress test the system. Set to 1 to limit debug output
     int socks[numConnections];
     char buffer[1024] = {0};
 
@@ -110,4 +127,26 @@ TEST_F(IntegrationTest, StressTest) {
         EXPECT_TRUE(response.find("EndOfTest") != std::string::npos);
         close(socks[i]);
     }
+}
+
+TEST_F(IntegrationTest, PostRequest) {
+    // Connect as a client
+    int sock = connectClient();
+
+    // Send HTTP POST request
+    std::string body = "name=Jake&email=jake@jake.com";
+    std::string request = "POST /cs290/HW3-moleskij/contact.html HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+    send(sock, request.c_str(), request.size(), 0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    send(sock, body.c_str(), body.size(), 0);
+
+    char buffer[1024] = {0};
+    int n = recv(sock, buffer, sizeof(buffer), 0);
+    ASSERT_GT(n, 0);
+    std::string response(buffer, n);
+
+    // Simple check: status 200 OK
+    EXPECT_TRUE(response.find("200 OK") != std::string::npos);
+    EXPECT_TRUE(response.find("name=Jake&email=jake@jake.com") != std::string::npos);
+    close(sock);
 }

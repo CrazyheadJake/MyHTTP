@@ -16,5 +16,11 @@ int main() {
         );
         return res;
     });
+    server.addRoute("/cs290/HW3-moleskij/contact.html", HTTPRequest::Method::POST, [](const HTTPRequest& req) {
+        HTTPResponse res = ResponseGenerator::generateHTMLResponse(
+            req.getBody() + "\n<a href=\"/cs290/HW3-moleskij/contact.html\">Link back to the contacts</a>"
+        );
+        return res;
+    });
     server.start();
 }

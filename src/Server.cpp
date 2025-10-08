@@ -160,13 +160,14 @@ void Server::handleClient(int clientSocket, uint32_t events)
     // Parse the request string into an HTTPRequest object
     auto request = Parser::parseRequest(buffer);
     // Handle the request and generate a response
-    auto response = handleRequest(*request);
+    auto response = handleRequest(request);
     std::string responseStr = response.toString();
 
     // Debug output
     std::cout << "Parsed HTTP request from fd=" << clientSocket << std::endl;
-    std::cout << HTTPRequest::getMethodString(request->getMethod()) << " " << request->getRoute() << std::endl;
-    std::cout << responseStr << std::endl;
+    if (request)
+        std::cout << HTTPRequest::getMethodString(request->getMethod()) << " " << request->getRoute() << std::endl;
+    // std::cout << "Response: \n" << responseStr << std::endl;
     
     // Send data, this will block if the kernel send buffer is filled up
     if (sendData(clientSocket, std::move(responseStr)) == -1) {
@@ -195,11 +196,25 @@ void Server::handleClient(int clientSocket, uint32_t events)
 // This is always run in a worker thread
 std::optional<std::string> Server::receiveData(int clientSocket)
 {
+    std::string contentLength = "Content-Length: ";
+    std::string endHeaders = "\r\n\r\n";
+
     // Receiving message from client
     std::string buffer = getFromBuffer(clientSocket);
     size_t oldSize;
     int bytesToReceive = 1024;
-    while (buffer.find("\r\n\r\n") == std::string::npos) {
+    while (true) {
+        size_t end = buffer.find(endHeaders);
+        // Make sure we have received the full body before we consider the transmission finished
+        size_t contentLengthIndex = buffer.find(contentLength);
+        if (contentLengthIndex != std::string::npos) {
+            int bodySize = std::stoi(buffer.substr(contentLengthIndex + contentLength.size()));
+            if (end + endHeaders.size() + bodySize == buffer.size())
+                break;
+        }
+        else if (end != std::string::npos)
+            break;
+
         oldSize = buffer.size();
         buffer.resize(buffer.size() + bytesToReceive);
         // This is a non-blocking recv due to non-blocking socket, exits thread if not done receiving data
@@ -230,6 +245,7 @@ std::optional<std::string> Server::receiveData(int clientSocket)
         // Resize buffer to get rid of unused data (very cheap, just updates internal size)
         buffer.resize(oldSize + bytes);
     }
+
     return buffer;
 }
 
